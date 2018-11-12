@@ -1,146 +1,61 @@
-#Restaurant Review Stage 3
-# Local Development API Server
+# Mobile Web Specialist Nanodegree - Project Stage 3
+---
 ## Usage
-#### Get Restaurants
-```
-curl "http://localhost:1337/restaurants"
-```
-#### Get Restaurants by id
-````
-curl "http://localhost:1337/restaurants/{3}"
-````
+1. Clone/download repository and navigate to folder in console/terminal window
+### Back-End
+2. change into back-end folder with ```cd back-end```
+3. Install Sails.js globally with ```npm i sails -g``` you might need to install sails locally in the back-end folder with ```npm i sails```
+4. Run API server in back-end folder with ```node server```
+### Front-End 
+5. Open new console/terminal window
+6. change into front-end folder with ```cd front-end```
+7. Install gulp globally with ```npm i gulp -g```
+8. Install serve globally  with ```npm i serve -g```
+9. Install npm packages with ```npm install```
+10. Build production files with ```gulp prod```
+11. Change into production directory with ```cd dist```
+12. Run node server with ```serve```
+13. Open  browserwindow/tab in incognito/private mode & paste URL from clipboard
+14. Open Dev Tools, run performance audit
+---
+ 
+---
+## User Interface Features
+### Main Page Featues
+* See chosen restaurants on Google Maps
+* Filter restaurants by cuisine or neighborhood
+* Scroll through cards of restaurants
+* Favorite restaurant by click on the hearth
+* Go to restaurant details 
 
-## Architecture
-Local server
-- Node.js
-- Sails.js
+### Detail Page Features
+* Check restaurant location
+* Check restaurant address
+* Check restaurant opening hours
+* Check restaurant reviews
+* Add your own review
 
-## Contributors
+## Responsivness & Accessibility Features
+* Application is fully mobile responsible
+* Main page scales cards according to viewport size
+* Detail page uses major break point to expand Google Maps
+* Traps TAB focus when the ADD REVIEW modal is open
+* Allows navigating the ADD REVIEW modal by keyboard only, including close on pressing ESC.
 
-- [Brandy Lee Camacho - Technical Project Manager](mailto:brandy.camacho@udacity.com)
-- [David Harris - Web Services Lead](mailto:david.harris@udacity.com)
-- [Omar Albeik - Frontend engineer](mailto:omaralbeik@gmail.com)
+## Offline Features
+* Register service worker
+* Cache html, css, js & images
+* Centrally manage application state via IndexedDB & API handlers in JS
+* Save JSON returned from API in IndexedDB
+* Form can be submited offline, browser will store form data in localstorage until online again and fetch POST request is successful
 
-## Getting Started
-
-### Development local API Server
-_Location of server = /server_
-Server depends on [node.js LTS Version: v6.11.2 ](https://nodejs.org/en/download/), [npm](https://www.npmjs.com/get-npm), and [sails.js](http://sailsjs.com/)
-Please make sure you have these installed before proceeding forward.
-
-Great, you are ready to proceed forward; awesome!
-
-Let's start with running commands in your terminal, known as command line interface (CLI)
-
-###### Install project dependancies
-```Install project dependancies
-# npm i
-```
-###### Install Sails.js globally
-```Install sails global
-# npm i sails -g
-```
-###### Start the server
-```Start server
-# node server
-```
-### You should now have access to your API server environment
-debug: Environment : development
-debug: Port        : 1337
-
-
-## Endpoints
-
-### GET Endpoints
-
-#### Get all restaurants
-```
-http://localhost:1337/restaurants/
-```
-
-#### Get favorite restaurants
-```
-http://localhost:1337/restaurants/?is_favorite=true
-```
-
-#### Get a restaurant by id
-```
-http://localhost:1337/restaurants/<restaurant_id>
-```
-
-#### Get all reviews for a restaurant
-```
-http://localhost:1337/reviews/?restaurant_id=<restaurant_id>
-```
-
-#### Get all restaurant reviews
-```
-http://localhost:1337/reviews/
-```
-
-#### Get a restaurant review by id
-```
-http://localhost:1337/reviews/<review_id>
-```
-
-#### Get all reviews for a restaurant
-```
-http://localhost:1337/reviews/?restaurant_id=<restaurant_id>
-```
-
-
-### POST Endpoints
-
-#### Create a new restaurant review
-```
-http://localhost:1337/reviews/
-```
-
-###### Parameters
-```
-{
-    "restaurant_id": <restaurant_id>,
-    "name": <reviewer_name>,
-    "rating": <rating>,
-    "comments": <comment_text>
-}
-```
-
-
-### PUT Endpoints
-
-#### Favorite a restaurant
-```
-http://localhost:1337/restaurants/<restaurant_id>/?is_favorite=true
-```
-
-#### Unfavorite a restaurant
-```
-http://localhost:1337/restaurants/<restaurant_id>/?is_favorite=false
-```
-
-#### Update a restaurant review
-```
-http://localhost:1337/reviews/<review_id>
-```
-
-###### Parameters
-```
-{
-    "name": <reviewer_name>,
-    "rating": <rating>,
-    "comments": <comment_text>
-}
-```
-
-
-### DELETE Endpoints
-
-#### Delete a restaurant review
-```
-http://localhost:1337/reviews/<review_id>
-```
-
-
-If you find a bug in the source code or a mistake in the documentation, you can help us by
-submitting an issue to our [Waffle Dashboard](https://waffle.io/udacity/mwnd-issues). Even better you can submit a Pull Request with a fix :)
+## Performance Measures Taken
+* Lazy loading of Google Maps on click/tab or applying cuisine or neighborhood filter
+* Serving viewport appropriate Google Maps placeholder image
+* Lazy loading images with an intersection observer on scrolling
+* Optimizing request chains
+* Control API fetches in dbhelper JS library by:
+  * Checking when API data got last refreshed
+  * Only reach out to the server when data is older than 5 minutes
+  * Only update IndexedDB when new data is different from stored one via webworker to unload pressure from main thread
+  * Fetch reviews restaurant specific not for all restaurants
