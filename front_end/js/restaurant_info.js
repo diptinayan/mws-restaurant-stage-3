@@ -1,333 +1,285 @@
 let restaurant;
-let map;
-let focusedElementBeforeModal;
-let modal;
+var map;
+let restaurantID;
+let currentRestaurant;
+
 
 window.initMap = () => {
-	fetchRestaurantFromURL((error, restaurant) => {
-		if (error) { // Got an error!
-			console.error(error);
-		} else {
-			self.map = new google.maps.Map(document.getElementById('map'), {
-				zoom: 16,
-				center: restaurant.latlng,
-				scrollwheel: false
-			});
-			fillBreadcrumb();
-			LocalState.getMapMarkerForRestaurant(self.restaurant, self.map);
-		}
-	});
-};
+  fetchRestaurantFromURL((error, restaurant) => {
+    if (error) { // Got an error!
+      console.error(error);
+    } else {
+      self.map = new google.maps.Map(document.getElementById('map'), {
+        zoom: 16,
+        center: restaurant.latlng,
+        scrollwheel: false
+      });
+      fillBreadcrumb();
+      DBHelper.mapMarkerForRestaurant(self.restaurant, self.map);
+    }
+  });
+}
+
+/**
+ *  eventListener for a offline and offline mode.
+    When it is the updateOnlineStatus method send an offline reviews to the server.
+ */
+window.addEventListener('load', () => {
+
+  updateOnlineStatus = (event) => {
+    DBHelper.updateOnlineStatus();
+  }
+
+  window.addEventListener('online',  updateOnlineStatus);
+  //location.reload();
+});
+
+/**
+ *  Create an element.
+ */
+ function createNode(el){
+   return document.createElement(el);
+ }
+/**
+ *  Append an element to the parent.
+ */
+ function append(parent, el) {
+   return parent.appendChild(el);
+ }
+
 
 
 fetchRestaurantFromURL = (callback) => {
-	if (self.restaurant) { // restaurant already fetched!
-		callback(null, self.restaurant);
-		return;
-	}
-	const id = getParameterByName('id');
-	if (!id) { // no id found in URL
-		error = 'No restaurant id in URL';
-		callback(error, null);
-	} else {
-		LocalState.getRestaurantById(id, (error, restaurant) => {
-			self.restaurant = restaurant;
-			if (!restaurant) {
-				console.error(error);
-				return;
-			}
-			fillRestaurantHTML();
-			callback(null, restaurant);
-		});
-	}
-};
+  if (self.restaurant) { // restaurant already fetched!
+    callback(null, self.restaurant)
+    return;
+  }
+  const id = getParameterByName('id');
+  if (!id) { // no id found in URL
+    error = 'No restaurant id in URL'
+    callback(error, null);
+  } else {
+    // assign the restaurantID value.
+    restaurantID = id;
+    DBHelper.fetchRestaurantById(id, (error, restaurant) => {
+      self.restaurant = restaurant;
+      if (!restaurant) {
+        console.error(error);
+        return;
+      }
+      fillRestaurantHTML();
+      callback(null, restaurant)
+    });
+  }
+}
 
 /**
  * Create restaurant HTML and add it to the webpage
  */
-
 fillRestaurantHTML = (restaurant = self.restaurant) => {
+  
+  const name = document.getElementById('restaurant-name');
+  name.innerHTML = restaurant.name;
 
-	const name = document.getElementById('restaurant-name');
-	name.innerHTML = restaurant.name;
+  const address = document.getElementById('restaurant-address');
+  address.innerHTML = restaurant.address;
 
-	const address = document.getElementById('restaurant-address');
-	address.innerHTML = restaurant.address;
-	const image = document.getElementById('restaurant-img');
-	image.className = 'restaurant-img';
-	image.setAttribute('alt', `Restaurant ${restaurant.name}`);
+  const image = document.getElementById('restaurant-img');
+  image.className = 'restaurant-img'
+  image.alt = restaurant.name;
+  image.src = DBHelper.imageUrlForRestaurant(restaurant);
 
-	// Check if image exists
-	const imageUrl = LocalState.getImageUrlForRestaurant(restaurant);
-	const regex = /undefined/;
+  const cuisine = document.getElementById('restaurant-cuisine');
+  cuisine.innerHTML = restaurant.cuisine_type;
 
-	if(!regex.test(imageUrl)) {
-		image.src = imageUrl;
-	} else {
-		image.src = '/img/icons/icon-placeholder.png';
-		console.log('Image undefined!');
-	}
-
-	const cuisine = document.getElementById('restaurant-cuisine');
-	cuisine.innerHTML = restaurant.cuisine_type;
-
-	// fill operating hours
-	if (restaurant.operating_hours) {
-		fillRestaurantHoursHTML();
-	}
-	// fill reviews
-	fetchReviews();
-	
-};
-
-fetchReviews = () => {
-	LocalState.getReviewsByRestaurant(self.restaurant.id, (error, reviews) => {
-		self.restaurant.reviews = reviews;
-		fillReviewsHTML();
-	});
+  // fill operating hours
+  if (restaurant.operating_hours) {
+    fillRestaurantHoursHTML();
+  }
+  // fill reviews
+  fillReviewsHTML();
 }
 
-
+/**
+ * Create restaurant operating hours HTML table and add it to the webpage.
+ */
 fillRestaurantHoursHTML = (operatingHours = self.restaurant.operating_hours) => {
-	const hours = document.getElementById('restaurant-hours');
-	for (let key in operatingHours) {
-		const row = document.createElement('tr');
+  const hours = document.getElementById('restaurant-hours');
+  for (let key in operatingHours) {
+    const row = createNode('tr');
 
-		const day = document.createElement('td');
-		day.innerHTML = key;
-		row.appendChild(day);
+    const day = createNode('td');
+    day.innerHTML = key;
+    append(row, day);
 
-		const time = document.createElement('td');
-		time.innerHTML = operatingHours[key];
-		row.appendChild(time);
+    const time = createNode('td');
+    time.innerHTML = operatingHours[key];
+    append(row, time);
 
-		hours.appendChild(row);
-	}
-};
+    append(hours,row);
+  }
+}
 
 /**
  * Create all reviews HTML and add them to the webpage.
  */
 fillReviewsHTML = (reviews = self.restaurant.reviews) => {
-	const container = document.getElementById('reviews-container');
-	modal = document.getElementById('add-review-modal');
+  const container = document.getElementById('reviews-container');
+  const title = createNode('h2');
+  title.id ='reviewsTitle';
+  title.innerHTML = 'Reviews';
+  title.setAttribute('style', 'text-align: center;');
+  append(container, title);
 
-	if(!document.getElementById('review-title')){
-		const title = document.createElement('h3');
-		title.id = 'review-title';
-		title.innerHTML = 'Reviews';
-		container.appendChild(title);
-	}
+ 
+  const id = parseInt(getParameterByName('id'));
 
-	
-	if(!document.getElementById('toggle-review-modal') ){
-		const addReviewButton = document.createElement('button');
-		addReviewButton.id = 'toggle-review-modal';
-		addReviewButton.innerHTML = 'Add Review';
-		addReviewButton.onclick = () => {
-			modal.style.display = 'block';
-			makeModalAccessible();
-		};
-		container.appendChild(addReviewButton);
-	}
-	
-	if (!reviews) {
-		const noReviews = document.createElement('p');
-		noReviews.innerHTML = 'No reviews yet!';
-		container.appendChild(noReviews);
-		return;
-	}
-	const ListContainer = document.getElementById('reviews-list');
-	ListContainer.innerHTML = '';
-	reviews.forEach(review => {
-		ListContainer.appendChild(createReviewHTML(review));
-	});
-	container.appendChild(ListContainer);
-};
+  const ul = document.getElementById('reviews-list');
+  let getReviews = DBHelper.fetchReviewsById(id);
+  // send offline reviews to the server.
+  DBHelper.updateOnlineStatus();
 
-addReviewHTML = (review) => {
-	const ListContainer = document.getElementById('reviews-list');
 
-	ListContainer.prepend(createReviewHTML(review));
-};
+  let offlineReviews= DBHelper.getLocalDataByID('reviews', 'restaurant', id);
+  console.log('Looking for local storedReviews: ', offlineReviews);
+                      offlineReviews.then((storedReviews) => {
+                      console.log('Looking for local data in offlineReviews: ',storedReviews);
+                      storedReviews.reverse().forEach(review => {
+                        append(ul, createReviewHTML(review));
+                      });
+                      append(container, ul);
+                      //return Promise.resolve(storedReviews);
+  }).catch((error) => {
+          console.log('No reviews yet! ', error.message);
+          const noReviews = createNode('p');
+          noReviews.innerHTML = 'No reviews yet!';
+          append(container, noReviews);
+          
+    });
+}
 
 
 createReviewHTML = (review) => {
-	const container = document.createElement('div');
-	const header = document.createElement('div');
-	const body = document.createElement('div');
-	const name = document.createElement('div');
-	container.setAttribute('class', 'review');
-	header.setAttribute('class', 'review-header');
-	body.setAttribute('class', 'review-body');
-	name.innerHTML = review.name;
-	name.setAttribute('class', 'reviewer-name');
-	container.appendChild(header);
-	container.appendChild(body);
-	header.appendChild(name);
+  const li = createNode('li');
+  // Create Temporary offline label.
+  // navigator.onLine
+  //!window.navigator.onLine
 
-	const date = document.createElement('div');
+  if (!navigator.onLine){
+     const offLineStatus = createNode('p');
+    offLineStatus.classList.add('offline-label');
+    offLineStatus.innerHTML = "Offline";
+    li.classList.add('offline-views');
+    offLineStatus.setAttribute('style', 'text-align: center;');
+    append(li, offLineStatus);   
+  }
 
-	formatTime = (timestamp) => {
-		const createdAt = new Date(timestamp);
-		const createdAtDate = createdAt.getDate();
-		const createdAtMonth = createdAt.getMonth();
-		const createdAtYear = createdAt.getFullYear();
-		const createdAtHour = createdAt.getHours();
-		const createdAtMinute = createdAt.getMinutes()
-		return `${createdAtYear}-${createdAtMonth}-${createdAtDate}, ${createdAtHour}:${createdAtMinute}`;
-	}
+  const name = createNode('p');
+  name.innerHTML = `Name: ${review.name}`;
+  append(li, name);
 
-	date.innerHTML = formatTime(review.createdAt);
+  const date = createNode('p');
 
-	date.setAttribute('class', 'review-date');
-	header.appendChild(date);
+  let dateObject = new Date(review.createdAt);
+  date.innerHTML =`Date: ${dateObject.toDateString()}`;
+  append(li, date);
+  
 
-	const rating = document.createElement('div');
-	rating.innerHTML = `Rating: ${review.rating}`;
-	rating.setAttribute('class', 'review-rating');
-	body.appendChild(rating);
+  const rating = createNode('p');
+  rating.innerHTML = `Rating: ${review.rating}`;
+  append(li, rating);
+  
 
-	const comments = document.createElement('div');
-	comments.innerHTML = review.comments;
-	body.appendChild(comments);
-
-	return container;
-};
-
-makeModalAccessible = () => {
-
-	let modalToggle = document.getElementById('toggle-review-modal');
-	let closeBtn = document.getElementsByClassName('close')[0];
-
-	
-	focusedElementBeforeModal = document.activeElement;
-	let focusableElementsString = 'input:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex="0"], [contenteditable]';
-	let focusableElements = modal.querySelectorAll(focusableElementsString);
-	focusableElements = Array.prototype.slice.call(focusableElements); // Convert NodeList to Arra<
-	let firstTabStop = focusableElements[0];
-	let lastTabStop = focusableElements[focusableElements.length -1];
-	modal.addEventListener('keydown', trapTabKey);
-	firstTabStop.focus();
-
-	// Closing Mechanisms
-	function closeModal() {
-		modal.style.display = 'none';
-		focusedElementBeforeModal.focus();
-	}
-
-	function trapTabKey (e) {
-
-		// if TAB key pressed
-		if(e.keyCode === 9) {
-
-			// if SHIFT + TAB
-			if(e.shiftKey) {
-
-				if(document.activeElement === firstTabStop) {
-					e.preventDefault();
-					lastTabStop.focus();
-				}
-
-			// TAB				
-			} else {
-
-				if(document.activeElement === lastTabStop) {
-					e.preventDefault();
-					firstTabStop.focus();
-				}
-
-			}
-		}
-
-		// Close on pressing ESC
-		if(e.keyCode === 27) closeModal();
-
-	};
-
-	
-	closeBtn.onclick = () => closeModal();
-
-	// Close on clicking outside modal
-	window.onclick = (event) => {
-		if(event.target == modal) {
-			modal.style.display = 'none';
-		}
-	}
-};
-
-
-
-// Form validation & submission
-addReview = () => {
-	
-	event.preventDefault();
-
-	// Getting the data from the form
-	let restaurantId = getParameterByName('id');
-	let name = document.getElementById('review-author').value;
-	let rating;
-	let comments = document.getElementById('review-comments').value;
-
-	let errors = [];
-	let errorContainer = document.getElementById('form-error');
-
-	// Basic Form Validation
-	if(name.length < 3 || name.length > 50) errors.push('<p>Please enter a name with 3-50 characters.</p>');
-	
-	if(document.querySelector('input[name="rating"]:checked')) {
-		rating = document.querySelector('input[name="rating"]:checked').value;
-	} else {
-		errors.push('<p>Please choose a rating.</p>');
-	}
-	if(comments.length > 250 || comments.length < 25) errors.push('<p>Please write comments with between 25-250 characters in length. </p>');
-	
-	if(errors.length > 0) {
-		errorContainer.innerHTML = errors.join('');
-		errorContainer.style.padding = '10px';
-	} else {
-		errorContainer.innerHTML = '';
-		const review = [name, rating, comments, restaurantId];
-
-		// Send review to backend
-		LocalState.addReview(review);
-
-		// Add data to DOM
-		const frontEndReview = {
-			restaurant_id: parseInt(review[3]),
-			rating: parseInt(review[1]),
-			name: review[0],
-			comments: review[2],
-			createdAt: new Date(),
-			updatedAt: new Date()
-		};
-
-		addReviewHTML(frontEndReview);
-		
-		document.getElementById('review-form').reset();
-		modal.style.display = 'none';
-	}
+  const comments = createNode('p');
+  comments.innerHTML = review.comments;
+  append(li, comments);
+ 
+  return li;
 }
 
-
+/**
+ * Add restaurant name to the breadcrumb navigation menu
+ */
 fillBreadcrumb = (restaurant=self.restaurant) => {
-	const breadcrumb = document.getElementById('breadcrumb');
-	const li = document.createElement('li');
-	li.innerHTML = restaurant.name;
-	li.setAttribute('aria-current', 'page');
-	breadcrumb.appendChild(li);
-};
-
-
-getParameterByName = (name, url) => {
-	if (!url)
-		url = window.location.href;
-	name = name.replace(/[\]]/g, '\\$&');
-	const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
-		results = regex.exec(url);
-	if (!results)
-		return null;
-	if (!results[2])
-		return '';
-	return decodeURIComponent(results[2].replace(/\+/g, ' '));
+  const breadcrumb = document.getElementById('breadcrumb');
+  const li = createNode('li');
+  li.innerHTML = restaurant.name;
+  breadcrumb.appendChild(li);
 }
+
+/**
+ * Get a parameter by name from page URL.
+ */
+getParameterByName = (name, url) => {
+  if (!url)
+    url = window.location.href;
+  name = name.replace(/[\[\]]/g, '\\$&');
+  const regex = new RegExp(`[?&]${name}(=([^&#]*)|&|#|$)`),
+    results = regex.exec(url);
+  if (!results)
+    return null;
+  if (!results[2])
+    return '';
+  return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+
+    
+   
+  const formEl = document.getElementById("formcomment");
+
+ 
+// Get the form data
+  getFormData = () => {
+     // get form data Name, comment , a rate.
+     const commentorName = document.getElementById("username").value;
+     const aComment = document.querySelector("textarea").value;
+     const starList = document.getElementsByName("star");
+
+     let aRate =1
+     for (let i = 0; i < starList.length; i++) {
+         if (starList[i].checked) {
+             aRate = starList[i].value;
+         }
+     }
+     
+     const formData = {
+         restaurant_id: parseInt(restaurantID),
+         name: commentorName,
+         rating: parseInt(aRate),
+         comments: aComment,
+         createdAt: (new Date()).getTime()
+     };
+     return formData;
+  }
+    
+
+  postReview = () => {
+    event.preventDefault();
+    let reviewData = getFormData();
+    const container = document.getElementById('reviews-container');
+    const ul = document.getElementById('reviews-list');
+
+    if (!navigator.onLine){
+      const offlineReviews = DBHelper.setLocalStorage(JSON.stringify(reviewData));
+      console.log("offline reviews saved", reviewData);
+
+
+    }else {
+
+      DBHelper.addReviews(reviewData);
+      console.log("update UI offLineStatus", reviewData); 
+    }
+    
+    const ulNewNode = createNode('ul');
+     ulNewNode.classList.add('reviewsUpdate');
+    
+    append(ulNewNode, createReviewHTML(reviewData));
+    
+   
+    const titleReviews = document.getElementById('reviewsTitle');
+    container.insertBefore(ulNewNode, titleReviews.nextSibling);
+    document.forms["formcomment"].reset(); 
+    
+    
+ } 
