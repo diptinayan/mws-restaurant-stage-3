@@ -1,5 +1,4 @@
-﻿
-class ApiService {
+﻿class ApiService {
 
 	static fetchApiData(api, callback){
 
@@ -76,7 +75,8 @@ class ApiService {
 // State Management
 class LocalState {
 
-	
+	// === UTILITY FUNCTIONS ===
+	// Creates or returns IndexedDB stores
 	static setupIDBStores(store) {
 		switch(store) {
 			case 'restaurants':
@@ -93,7 +93,7 @@ class LocalState {
 		}
 	}
 
-	
+	// Check for Data in IDB, serve, fetch and update
 	static checkforIDBData(api, callback) {
 
 		const dbPromise = LocalState.setupIDBStores(api.object_type)
@@ -104,7 +104,7 @@ class LocalState {
 			return store.getAll();
 		}).then( data => {
 
-			
+			// Data in IDB: Send to front-end, fetch from API, compare & update
 			if(data.length > 0) {
 				console.log(`IDB: ${api.name} retrieved:`, data);
 
@@ -129,7 +129,7 @@ class LocalState {
 					});
 				}
 			
-			
+			// Data not in IDB: Fetch from API, send to front-end, store in IDB
 			} else {
 				console.log(`IDB: No ${api.name} found`);
 
@@ -206,7 +206,7 @@ class LocalState {
 		});
 	}
 
-	
+	// === Getter FUNCTIONS ===
 	static getRestaurantById(id, callback) {
 		let api = {
 			name: 'restaurantById',
@@ -331,7 +331,7 @@ class LocalState {
 				// Get all cuisines from all restaurants
 				const cuisines = restaurants.map((v, i) => restaurants[i].cuisine_type);
 				
-				
+				// Remove duplicates from cuisines
 				const uniqueCuisines = cuisines.filter(
 					(v, i) => cuisines.indexOf(v) == i
 				);
@@ -406,10 +406,11 @@ class LocalState {
 			object_type: 'review'
 		};
 
-		
+		// Send to LocalState for update
 		ApiService.fetchApiData(api, (error, data) => {
 			error ? console.log(error) : console.log(`Server: Review uploaded`);
 		});
 
 	}
 
+}
